@@ -41,12 +41,41 @@ class TabiAIService
      */
     public function generateJSON(string $systemPrompt, string $userPrompt): array
     {
-        if ($this->apiKey === '' || $this->baseUrl === '' || $this->model === '') {
+        if ($this->apiKey === '' || $this->baseUrl === '') {
             throw new RuntimeException(
-                'Tabi AI is not configured. Set TABI_AI_API_KEY, TABI_AI_BASE_URL and TABI_AI_MODEL in the backend .env.'
+                'Tabi AI is not configured. Set TABI_AI_API_KEY and TABI_AI_BASE_URL in the backend .env.'
             );
         }
 
+        $models = array_merge([$this->model], $this->backupModels);
+        $errors = [];
+
+        foreach ($models as $model) {
+            try {
+                return $this->callModel($model, $systemPrompt, $userPrompt);
+            } catch (RuntimeException $e) {
+                $errors[] = "{$model}: {$e->getMessage()}";
+            }
+        }
+
+        throw new RuntimeException(
+            'All models failed. '.implode(' | ', $errors)
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function tryModel(string $model, string $systemPrompt, string $userPrompt): array
+    {
+        return $this->callModel($model, $systemPrompt, $userPrompt);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function callModel(string $model, string $systemPrompt, string $userPrompt): array
+    {
         $url = sprintf('%s/chat/completions', rtrim($this->baseUrl, '/'));
 
         $response = Http::timeout(60)
@@ -54,7 +83,7 @@ class TabiAIService
             ->acceptJson()
             ->asJson()
             ->post($url, [
-                'model' => $this->model,
+                'model' => $model,
                 'max_tokens' => 2048,
                 'response_format' => ['type' => 'json_object'],
                 'messages' => [
@@ -69,7 +98,6 @@ class TabiAIService
             throw new RuntimeException("Tabi AI error: {$message}");
         }
 
-        // OpenAI Chat Completions returns the text in choices[0].message.content.
         $content = $response->json('choices.0.message.content');
 
         if (! is_string($content) || trim($content) === '') {

@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
                 apiKey: (string) config('services.tabi.key'),
                 baseUrl: (string) config('services.tabi.base_url'),
                 model: (string) config('services.tabi.model'),
+                backupModels: (array) config('services.tabi.backup_models'),
             );
         });
     }

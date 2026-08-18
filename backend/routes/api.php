@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\IdeaController;
+use App\Http\Controllers\Api\ModelBackupController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\QuestController;
 use App\Http\Controllers\Api\ScheduleController;
@@ -70,6 +71,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/ideas/generate', [IdeaController::class, 'generate']);
         Route::post('/scripts/generate', [ScriptController::class, 'generate']);
     });
+
+    // Model backup — list available models and test individual models
+    Route::get('/models', [ModelBackupController::class, 'models']);
+    Route::post('/models/test', [ModelBackupController::class, 'test']);
 
     // Legacy AI proxy (Gemini) — kept for the existing script/analyze/hooks
     // features; superseded by the Tabi-backed generators above.
