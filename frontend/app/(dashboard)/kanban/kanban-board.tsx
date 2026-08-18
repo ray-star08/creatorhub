@@ -70,9 +70,9 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 export function KanbanBoard() {
   const [columns, setColumns] = useState<Columns>(emptyColumns);
   const [loading, setLoading] = useState(true);
-  // Which mobile accordion columns are expanded. `null` until the first fetch
-  // resolves, then defaulted to "columns that have tasks".
-  const [openColumns, setOpenColumns] = useState<Set<TaskStatus> | null>(null);
+  // Which mobile accordion columns are expanded. `null` = user hasn't toggled
+  // yet, so we fall back to "columns that have tasks".
+  const [userOpen, setUserOpen] = useState<Set<TaskStatus> | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -91,21 +91,21 @@ export function KanbanBoard() {
     };
   }, []);
 
-  // Default the accordion once tasks arrive: expand non-empty columns, collapse
-  // the rest. Runs only while `openColumns` is still null so user toggles stick.
-  useEffect(() => {
-    if (loading || openColumns !== null) return;
-    setOpenColumns(
-      new Set(
-        KANBAN_COLUMNS.filter((c) => columns[c.id].length > 0).map((c) => c.id),
-      ),
-    );
-  }, [loading, openColumns, columns]);
+  const openColumns =
+    loading
+      ? null
+      : (userOpen ??
+        new Set(
+          KANBAN_COLUMNS.filter((c) => columns[c.id].length > 0).map(
+            (c) => c.id,
+          ),
+        ));
 
   function toggleColumn(id: TaskStatus) {
-    setOpenColumns((prev) => {
-      const next = new Set(prev ?? []);
-      next.has(id) ? next.delete(id) : next.add(id);
+    setUserOpen((prev) => {
+      const next = new Set(prev ?? openColumns ?? []);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -157,7 +157,7 @@ export function KanbanBoard() {
       [to]: [...prev[to], { ...task, status: to }],
     }));
     // Make sure the destination column is visible after a mobile move.
-    setOpenColumns((prev) => new Set(prev ?? []).add(to));
+    setUserOpen((prev) => new Set(prev ?? openColumns ?? []).add(to));
     persistMove(task, to, snapshot);
   }
 
@@ -186,29 +186,20 @@ export function KanbanBoard() {
         <BoardSkeleton />
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
-          {/* Mobile (< md): vertical accordion stack. */}
-          <div className="flex flex-col gap-3 md:hidden">
+          {/*
+            ONE tree for every breakpoint (CSS switches mobile accordion /
+            desktop grid). Swapping trees unmounts Droppables mid-drag and
+            crashes @hello-pangea/dnd, so never conditionally mount columns.
+          */}
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-3 md:gap-4 xl:grid-cols-5">
             {KANBAN_COLUMNS.map((column) => (
               <BoardColumn
                 key={column.id}
                 column={column}
                 items={columns[column.id]}
-                collapsible
                 open={openColumns?.has(column.id) ?? false}
                 onToggle={() => toggleColumn(column.id)}
-                showMoveMenu
                 onMove={moveTask}
-              />
-            ))}
-          </div>
-
-          {/* Desktop (>= md): proportional multi-column grid, no clipped scroll. */}
-          <div className="hidden gap-4 md:grid md:grid-cols-3 xl:grid-cols-5">
-            {KANBAN_COLUMNS.map((column) => (
-              <BoardColumn
-                key={column.id}
-                column={column}
-                items={columns[column.id]}
               />
             ))}
           </div>
@@ -227,19 +218,15 @@ export function KanbanBoard() {
 function BoardColumn({
   column,
   items,
-  collapsible,
-  open = true,
+  open,
   onToggle,
-  showMoveMenu,
   onMove,
 }: {
   column: (typeof KANBAN_COLUMNS)[number];
   items: Task[];
-  collapsible?: boolean;
-  open?: boolean;
-  onToggle?: () => void;
-  showMoveMenu?: boolean;
-  onMove?: (task: Task, to: TaskStatus) => void;
+  open: boolean;
+  onToggle: () => void;
+  onMove: (task: Task, to: TaskStatus) => void;
 }) {
   const header = (
     <>
@@ -248,31 +235,29 @@ function BoardColumn({
       <Badge variant="secondary" className="ml-auto tabular-nums">
         {items.length}
       </Badge>
-      {collapsible ? (
+    </>
+  );
+
+  return (
+    <div className="bg-muted/40 flex flex-col rounded-xl border">
+      {/* Toggle exists only on mobile; desktop shows a static header. */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex items-center gap-2 px-3 py-3 text-left md:hidden"
+      >
+        {header}
         <ChevronDown
           className={cn(
             "text-muted-foreground size-4 transition-transform",
             open && "rotate-180",
           )}
         />
-      ) : null}
-    </>
-  );
-
-  return (
-    <div className="bg-muted/40 flex flex-col rounded-xl border">
-      {collapsible ? (
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={open}
-          className="flex items-center gap-2 px-3 py-3 text-left"
-        >
-          {header}
-        </button>
-      ) : (
-        <div className="flex items-center gap-2 px-3 py-3">{header}</div>
-      )}
+      </button>
+      <div className="hidden items-center gap-2 px-3 py-3 md:flex">
+        {header}
+      </div>
       <Droppable droppableId={column.id}>
         {(provided, snapshot) => (
           <div
@@ -281,8 +266,8 @@ function BoardColumn({
             className={cn(
               "flex flex-1 flex-col gap-2 px-3 pb-3 transition-colors",
               snapshot.isDraggingOver && "bg-primary/5",
-              // Collapse the body on mobile without unmounting the Droppable.
-              collapsible && !open && "hidden",
+              // Collapse on mobile without unmounting the Droppable.
+              !open && "max-md:hidden",
             )}
           >
             {items.map((task, index) => (
@@ -300,11 +285,7 @@ function BoardColumn({
                       task={task}
                       isDragging={dragSnapshot.isDragging}
                       dragHandleProps={dragProvided.dragHandleProps}
-                      onMove={
-                        showMoveMenu && onMove
-                          ? (to) => onMove(task, to)
-                          : undefined
-                      }
+                      onMove={(to) => onMove(task, to)}
                     />
                   </div>
                 )}

@@ -86,7 +86,7 @@ export default function IdeasGeneratePage() {
     try {
       const { data } = await api.post<
         Idea[] | { ideas?: Idea[]; data?: Idea[] }
-      >("/ideas/generate", values);
+      >("/ideas/generate", { ...values, count: 3 });
       const fresh = extractIdeas(data);
       setIdeas((prev) => [...fresh, ...prev]);
       toast.success(

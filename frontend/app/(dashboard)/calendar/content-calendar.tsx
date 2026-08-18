@@ -9,7 +9,7 @@ import {
   type SlotInfo,
   Views,
 } from "react-big-calendar";
-import { format, getDay, parse, startOfWeek } from "date-fns";
+import { format, getDay, isSameDay, parse, startOfWeek } from "date-fns";
 import { enUS } from "date-fns/locale";
 import { CalendarPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -70,6 +70,29 @@ function toEvent(schedule: Schedule): CalendarEvent {
   };
 }
 
+function EventChip({ title }: { title?: string }) {
+  return (
+    <span className="flex min-w-0 items-center gap-1.5">
+      <span className="size-1.5 shrink-0 rounded-full bg-primary/70" />
+      <span className="truncate">{title}</span>
+    </span>
+  );
+}
+
+function MonthDateHeader({ date, label }: { date?: Date; label?: string }) {
+  if (!date || !isSameDay(date, new Date())) return <>{label}</>;
+  return (
+    <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground shadow-sm">
+      {date.getDate()}
+    </span>
+  );
+}
+
+const calendarComponents = {
+  event: EventChip,
+  month: { dateHeader: MonthDateHeader },
+};
+
 export function ContentCalendar() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +145,7 @@ export function ContentCalendar() {
         </Button>
       </PageHeader>
 
-      <Card className="p-3 sm:p-4">
+      <Card className="rounded-2xl p-3 sm:p-4">
         {loading ? (
           <Skeleton className="h-[70vh] min-h-[560px] w-full" />
         ) : (
@@ -133,6 +156,7 @@ export function ContentCalendar() {
               defaultDate={defaultDate}
               defaultView={Views.MONTH}
               views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+              components={calendarComponents}
               popup
               selectable
               onSelectSlot={handleSelectSlot}

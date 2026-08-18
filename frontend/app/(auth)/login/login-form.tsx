@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 import api, { getApiErrorMessage } from "@/lib/axios";
 import { useAuthStore } from "@/stores/useAuthStore";
@@ -42,6 +42,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const [submitting, setSubmitting] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -51,7 +52,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
     try {
-      const { data } = await api.post<AuthResponse>("/login", values);
+      const { data } = await api.post<AuthResponse>("/auth/login", values);
       login(data.user, data.token);
       toast.success(`Welcome back, ${data.user.name.split(" ")[0]}!`);
       router.replace(redirectTo);
@@ -59,6 +60,31 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       toast.error(getApiErrorMessage(error, "Invalid email or password."));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function demoLogin() {
+    setDemoLoading(true);
+    try {
+      const { data } = await api.post<AuthResponse>("/auth/login", {
+        email: "demo@creatorhub.app",
+        password: "demo123456",
+      });
+      login(data.user, data.token);
+      toast.success("Welcome, Judge! Demo workspace loaded.");
+      router.replace(redirectTo);
+    } catch {
+      const { data } = await api.post<AuthResponse>("/auth/register", {
+        name: "Demo Judge",
+        email: "demo@creatorhub.app",
+        password: "demo123456",
+        password_confirmation: "demo123456",
+      });
+      login(data.user, data.token);
+      toast.success("Demo account created. Welcome, Judge!");
+      router.replace(redirectTo);
+    } finally {
+      setDemoLoading(false);
     }
   }
 
@@ -115,6 +141,21 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
             </Button>
           </form>
         </Form>
+        <div className="mt-4 border-t pt-4">
+          <Button
+            variant="outline"
+            className="w-full border-primary/40 text-primary hover:bg-primary/5"
+            onClick={demoLogin}
+            disabled={demoLoading}
+          >
+            {demoLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {demoLoading ? "Loading demo…" : "Quick Demo Access (For Judges)"}
+          </Button>
+        </div>
       </CardContent>
       <CardFooter className="justify-center">
         <p className="text-muted-foreground text-sm">

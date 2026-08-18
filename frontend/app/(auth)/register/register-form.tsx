@@ -63,7 +63,7 @@ export function RegisterForm() {
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
     try {
-      const { data } = await api.post<AuthResponse>("/register", values);
+      const { data } = await api.post<AuthResponse>("/auth/register", values);
       login(data.user, data.token);
       toast.success("Account created — let's set up your profile.");
       // New users go through frictionless onboarding first.

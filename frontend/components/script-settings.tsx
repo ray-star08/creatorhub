@@ -40,6 +40,7 @@ interface ScriptSettingsProps {
   loadingIdeas: boolean;
   disabled: boolean;
   onSubmit: (values: ScriptSettingsValues) => void | Promise<void>;
+  hasInitialIdea?: boolean;
 }
 
 export function ScriptSettings({
@@ -48,8 +49,9 @@ export function ScriptSettings({
   loadingIdeas,
   disabled,
   onSubmit,
+  hasInitialIdea = false,
 }: ScriptSettingsProps) {
-  const noIdeas = !loadingIdeas && ideas.length === 0;
+  const noIdeas = !loadingIdeas && ideas.length === 0 && !hasInitialIdea;
 
   return (
     <Card className="relative min-w-0 w-full max-w-full overflow-hidden rounded-2xl border-border/70 bg-card/95 shadow-[0_16px_50px_-32px_rgba(99,91,255,0.6)] backdrop-blur transition-all duration-300 xl:sticky xl:top-24 xl:w-[420px] xl:self-start dark:bg-card/90">

@@ -60,6 +60,13 @@ export function ScriptGenerator({ initialIdeaId }: { initialIdeaId: string }) {
     };
   }, []);
 
+  // URL ideaId wins once ideas load; stale/unknown ids fall back to the first idea.
+  useEffect(() => {
+    if (loadingIdeas || ideas.length === 0) return;
+    const exists = ideas.some((idea) => String(idea.id) === initialIdeaId);
+    if (!exists) form.setValue("idea_id", String(ideas[0].id), { shouldValidate: true });
+  }, [ideas, loadingIdeas, initialIdeaId, form]);
+
   async function onSubmit(values: ScriptSettingsValues) {
     setGenerating(true);
     setRevealing(false);
@@ -198,6 +205,7 @@ export function ScriptGenerator({ initialIdeaId }: { initialIdeaId: string }) {
           loadingIdeas={loadingIdeas}
           disabled={busy}
           onSubmit={onSubmit}
+          hasInitialIdea={Boolean(initialIdeaId)}
         />
 
         <ScriptPreview

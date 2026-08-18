@@ -5,6 +5,12 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  level: number;
+  xp: number;
+  next_level_xp: number;
+  title: string;
+  momentum: number;
+  streak: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -22,9 +28,10 @@ export interface Profile {
 
 export interface Idea {
   id: number;
-  user_id: number;
+  user_id: string;
   title: string;
   description: string;
+  topic: string | null;
   engagement_score: number;
   created_at?: string;
   updated_at?: string;
@@ -32,10 +39,11 @@ export interface Idea {
 
 export interface Script {
   id: number;
-  user_id: number;
+  user_id: string;
   idea_id: number | null;
   title: string;
   hook: string;
+  main_content: string;
   content: string;
   cta: string;
   created_at?: string;

@@ -138,81 +138,159 @@
 
 /* ------------------------------------------------------------------ */
 /* react-big-calendar — themed to match shadcn tokens                  */
+/* `.rbc-calendar` prefix guarantees override of lib defaults.         */
 /* ------------------------------------------------------------------ */
 .rbc-calendar {
   font-family: var(--font-sans);
   color: var(--foreground);
 }
-.rbc-toolbar {
+
+/* Toolbar: segmented button groups + centered title */
+.rbc-calendar .rbc-toolbar {
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1rem;
-  gap: 0.5rem;
   flex-wrap: wrap;
 }
-.rbc-toolbar .rbc-toolbar-label {
+.rbc-calendar .rbc-toolbar .rbc-toolbar-label {
+  font-size: 1.125rem;
   font-weight: 600;
-  font-size: 1rem;
-}
-.rbc-toolbar button {
   color: var(--foreground);
+}
+.rbc-calendar .rbc-toolbar .rbc-btn-group {
+  display: inline-flex;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 0.35rem 0.7rem;
   background: var(--card);
-  transition: background-color 0.15s ease;
+  box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.04);
 }
-.rbc-toolbar button:hover,
-.rbc-toolbar button:focus {
+.rbc-calendar .rbc-toolbar .rbc-btn-group button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.rbc-calendar .rbc-toolbar .rbc-btn-group button + button {
+  border-left: 1px solid var(--border);
+}
+.rbc-calendar .rbc-toolbar .rbc-btn-group button:hover,
+.rbc-calendar .rbc-toolbar .rbc-btn-group button:focus {
   background: var(--muted);
   color: var(--foreground);
 }
-.rbc-toolbar button.rbc-active,
-.rbc-toolbar button.rbc-active:hover,
-.rbc-toolbar button.rbc-active:focus {
+.rbc-calendar .rbc-toolbar .rbc-btn-group button.rbc-active,
+.rbc-calendar .rbc-toolbar .rbc-btn-group button.rbc-active:hover,
+.rbc-calendar .rbc-toolbar .rbc-btn-group button.rbc-active:focus {
   background: var(--primary);
   color: var(--primary-foreground);
-  border-color: var(--primary);
+  box-shadow: inset 0 1px 3px 0 oklch(0 0 0 / 0.12);
 }
-.rbc-month-view,
-.rbc-time-view,
-.rbc-agenda-view {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+
+/* Main container: clean white card, soft border, big radius */
+.rbc-calendar .rbc-month-view,
+.rbc-calendar .rbc-time-view,
+.rbc-calendar .rbc-agenda-view {
+  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   background: var(--card);
 }
-.rbc-header,
-.rbc-month-row + .rbc-month-row,
-.rbc-day-bg + .rbc-day-bg,
-.rbc-time-content,
-.rbc-time-header-content,
-.rbc-timeslot-group {
-  border-color: var(--border);
+
+/* Very soft dividers instead of hard table borders */
+.rbc-calendar .rbc-header,
+.rbc-calendar .rbc-header + .rbc-header,
+.rbc-calendar .rbc-month-row + .rbc-month-row,
+.rbc-calendar .rbc-day-bg + .rbc-day-bg,
+.rbc-calendar .rbc-time-content,
+.rbc-calendar .rbc-time-header-content,
+.rbc-calendar .rbc-timeslot-group,
+.rbc-calendar .rbc-time-header.rbc-overflowing {
+  border-color: color-mix(in oklch, var(--border) 60%, transparent);
 }
-.rbc-header {
-  padding: 0.6rem 0.5rem;
+
+/* Day header cells: muted tint, uppercase tracking */
+.rbc-calendar .rbc-header {
+  padding: 0.65rem 0.5rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
 }
-.rbc-off-range-bg {
-  background: color-mix(in oklch, var(--muted), transparent 40%);
+
+/* Date numbers: proper inner padding */
+.rbc-calendar .rbc-month-view .rbc-date-cell {
+  padding: 0.5rem 0.5rem 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
-.rbc-today {
-  background: var(--accent);
+
+/* Outside-month days: heavily muted */
+.rbc-calendar .rbc-off-range-bg {
+  background: color-mix(in oklch, var(--muted), transparent 55%);
 }
-.rbc-event,
-.rbc-day-slot .rbc-event {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 2px 6px;
-  font-size: 0.8rem;
+.rbc-calendar .rbc-off-range {
+  color: var(--muted-foreground);
+  opacity: 0.4;
 }
-.rbc-event.rbc-selected {
-  background: color-mix(in oklch, var(--primary), black 12%);
+
+/* Today: soft purple tint (badge circle rendered by DateHeader) */
+.rbc-calendar .rbc-today {
+  background: color-mix(in oklch, var(--primary) 7%, transparent);
 }
-.rbc-show-more {
+
+/* Event pills: soft tint + border, dot rendered by EventChip */
+.rbc-calendar .rbc-event,
+.rbc-calendar .rbc-day-slot .rbc-event {
+  display: flex;
+  align-items: center;
+  background: color-mix(in oklch, var(--primary) 9%, transparent);
+  color: color-mix(in oklch, var(--primary) 85%, black);
+  border: 1px solid color-mix(in oklch, var(--primary) 25%, transparent);
+  border-radius: var(--radius-md);
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.rbc-calendar .rbc-event.rbc-selected,
+.rbc-calendar .rbc-day-slot .rbc-event.rbc-selected {
+  background: color-mix(in oklch, var(--primary) 15%, transparent);
+  border-color: color-mix(in oklch, var(--primary) 45%, transparent);
+}
+.rbc-calendar .rbc-show-more {
   color: var(--primary);
   background: transparent;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 4px;
+}
+
+/* Agenda view polish */
+.rbc-calendar .rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.rbc-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* "+x more" popup overlay (portal: needs own selector weight) */
+div.rbc-overlay {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px -10px oklch(0 0 0 / 0.2);
+  padding: 0.5rem;
 }

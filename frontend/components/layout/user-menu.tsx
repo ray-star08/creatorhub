@@ -26,7 +26,7 @@ export function UserMenu() {
 
   async function handleLogout() {
     try {
-      await api.post("/logout");
+      await api.post("/auth/logout");
     } catch {
       // Even if the network call fails, clear the client session.
     }
