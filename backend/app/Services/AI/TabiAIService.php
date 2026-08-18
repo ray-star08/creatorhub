@@ -23,7 +23,7 @@ use RuntimeException;
 class TabiAIService
 {
     /**
-     * @param string[] $backupModels
+     * @param  string[]  $backupModels
      */
     public function __construct(
         private readonly string $apiKey,

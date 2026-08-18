@@ -19,8 +19,7 @@ class GeminiService
         private readonly string $apiKey,
         private readonly string $model,
         private readonly string $baseUrl,
-    ) {
-    }
+    ) {}
 
     /**
      * Send a single-turn prompt to Gemini and return the plain-text response.

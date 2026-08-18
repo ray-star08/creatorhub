@@ -1,3 +1,6 @@
 references/
 task.md
 .claude/
+git add .
+git commit -m "chore: ignore references and tasks"
+git push origin main

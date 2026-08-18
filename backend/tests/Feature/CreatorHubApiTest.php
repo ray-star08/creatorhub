@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Card;
-use App\Models\Quest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
