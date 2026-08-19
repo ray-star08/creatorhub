@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { db, tokens } from "./db";
+import { db, tokens, type DbUser } from "./db";
+import { seedStarterQuests } from "./gamification";
 import { TOKEN_KEY } from "@/lib/auth-token";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,14 +34,43 @@ export function getUserId(req: NextRequest): number | null {
   try {
     const payload = token.split(".")[1];
     const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const claims = JSON.parse(atob(b64));
-    const user = claims.sub ? db.users.find((u) => u.supabase_id === claims.sub) : null;
-    if (!user) return null;
+    const bin = atob(b64);
+    const json = new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+    const claims = JSON.parse(json);
+    if (!claims.sub) return null;
+    let user = db.users.find((u) => u.supabase_id === claims.sub) ?? null;
+    if (!user) {
+      // valid Supabase token but user missing from in-memory db (state wipe):
+      // upsert on the fly instead of 401
+      user = upsertUserFromClaims(claims.sub, claims.email, claims.user_metadata?.name);
+    }
     tokens.set(token, user.id);
     return user.id;
   } catch {
     return null;
   }
+}
+
+function upsertUserFromClaims(supabaseId: string, email: string | undefined, name: string | undefined): DbUser {
+  const now = db.now();
+  const user: DbUser = {
+    id: db.autoId(),
+    supabase_id: supabaseId,
+    name: name ?? (email ? email.split("@")[0] : "Creator"),
+    email: email ?? `${supabaseId}@unknown.local`,
+    password: "",
+    level: 1,
+    xp: 0,
+    next_level_xp: 100,
+    title: "Aspiring Creator",
+    momentum: 0,
+    streak: 0,
+    created_at: now,
+    updated_at: now,
+  };
+  db.users.push(user);
+  seedStarterQuests(user.id);
+  return user;
 }
 
 export function getUser(userId: number) {

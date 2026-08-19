@@ -66,23 +66,12 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   async function demoLogin() {
     setDemoLoading(true);
     try {
-      const { data } = await api.post<AuthResponse>("/auth/login", {
-        email: "demo@creatorhub.app",
-        password: "demo123456",
-      });
+      const { data } = await api.post<AuthResponse>("/auth/demo");
       login(data.user, data.token);
-      toast.success("Welcome, Judge! Demo workspace loaded.");
-      router.replace(redirectTo);
-    } catch {
-      const { data } = await api.post<AuthResponse>("/auth/register", {
-        name: "Demo Judge",
-        email: "demo@creatorhub.app",
-        password: "demo123456",
-        password_confirmation: "demo123456",
-      });
-      login(data.user, data.token);
-      toast.success("Demo account created. Welcome, Judge!");
-      router.replace(redirectTo);
+      toast.success("Your personal demo workspace is ready.");
+      router.replace("/dashboard");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Could not start demo. Please try again."));
     } finally {
       setDemoLoading(false);
     }
