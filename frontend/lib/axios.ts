@@ -22,14 +22,34 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401 from auth-check endpoints, clear stale token and bounce to /login.
-// For all other endpoints, just reject — callers already show toast on failure.
+// On 401: refresh the Supabase session once and retry. If refresh fails on an
+// auth-check endpoint, clear stale token and bounce to /login.
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      const url = error.config?.url ?? "";
-      const isAuthEndpoint = /\/auth\/(me|login|register)/.test(url);
+      const config = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+      const url = config?.url ?? "";
+      const isAuthEndpoint = /\/auth\/(me|login|register|demo)/.test(url);
+
+      if (config && !config._retried && !isAuthEndpoint) {
+        config._retried = true;
+        try {
+          const { createClient } = await import("@/lib/supabase/client");
+          const supabase = createClient();
+          const { data } = await supabase.auth.refreshSession();
+          const token = data.session?.access_token;
+          if (token) {
+            const { useAuthStore } = await import("@/stores/useAuthStore");
+            useAuthStore.getState().refreshToken(token);
+            config.headers.Authorization = `Bearer ${token}`;
+            return api(config);
+          }
+        } catch {
+          // fall through to reject
+        }
+      }
+
       if (isAuthEndpoint) {
         clearToken();
         if (!window.location.pathname.startsWith("/login")) {
