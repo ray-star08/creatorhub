@@ -55,12 +55,30 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // retry on Supabase rate limit (429) — many simultaneous sign-ups from one IP
+    type SignInResult = Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
+    let signInData: SignInResult["data"] | undefined;
+    let signInError: SignInResult["error"] | undefined;
+    let rateLimited = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      ({ data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      }));
+      if (!signInError) break;
+      rateLimited = signInError.status === 429 || /rate|too many/i.test(signInError.message);
+      if (!rateLimited) break;
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+    }
 
-    if (signInError || !signInData.session) {
+    if (signInError || !signInData?.session) {
+      if (rateLimited) {
+        return NextResponse.json(
+          { message: "Account created! Server is busy — please sign in now." },
+          { status: 429 },
+        );
+      }
+      console.error("register sign-in failed:", signInError);
       return NextResponse.json({ message: "Account created but login failed. Please try signing in." }, { status: 500 });
     }
 
@@ -98,6 +116,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (e) {
+    console.error("register error:", e);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }

@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { db, tokens } from "./db";
-import { seedStarterQuests } from "./gamification";
 import { TOKEN_KEY } from "@/lib/auth-token";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,34 +28,19 @@ export function getUserId(req: NextRequest): number | null {
   const existing = tokens.get(token);
   if (existing != null) return existing;
 
-  // ponytail: cold-restart recovery — in-memory token map was lost but client
-  // still holds a valid-looking token. Re-bind to existing user or seed a demo
-  // user so the demo never breaks. Replace with real DB session lookup.
-  const user = db.users[0] ?? createDemoUser();
-  tokens.set(token, user.id);
-  return user.id;
-}
-
-function createDemoUser() {
-  const now = db.now();
-  const user = {
-    id: db.autoId(),
-    supabase_id: null,
-    name: "Demo Creator",
-    email: "demo@creatorhub.local",
-    password: "",
-    level: 1,
-    xp: 0,
-    next_level_xp: 100,
-    title: "Aspiring Creator",
-    momentum: 0,
-    streak: 0,
-    created_at: now,
-    updated_at: now,
-  };
-  db.users.push(user);
-  seedStarterQuests(user.id);
-  return user;
+  // ponytail: token is a Supabase JWT — decode `sub` and re-bind by supabase_id
+  // (in-memory map may be lost on recompile). Replace with real DB session lookup.
+  try {
+    const payload = token.split(".")[1];
+    const b64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const claims = JSON.parse(atob(b64));
+    const user = claims.sub ? db.users.find((u) => u.supabase_id === claims.sub) : null;
+    if (!user) return null;
+    tokens.set(token, user.id);
+    return user.id;
+  } catch {
+    return null;
+  }
 }
 
 export function getUser(userId: number) {
@@ -65,13 +49,4 @@ export function getUser(userId: number) {
 
 export function getUserBySupabaseId(supabaseId: string) {
   return db.users.find((u) => u.supabase_id === supabaseId) ?? null;
-}
-
-export function generateToken(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let token = "";
-  for (let i = 0; i < 60; i++) {
-    token += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return token;
 }
