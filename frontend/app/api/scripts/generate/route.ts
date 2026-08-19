@@ -3,6 +3,9 @@ import { getSupabaseUserId } from "@/lib/api/auth";
 import { getIdea, createScript } from "@/lib/supabase/db";
 import { tabiGenerateJSON, mockStructuredScript } from "@/lib/api/ai";
 
+// Vercel: allow up to 60s for live AI generation (Hobby & Pro plans).
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const userId = await getSupabaseUserId(req);
@@ -26,19 +29,23 @@ export async function POST(req: NextRequest) {
     const title = idea.title ?? "";
 
     const systemPrompt = "You are a data-driven Content Strategist & Script Writer. Respond ONLY in Bahasa Indonesia with valid JSON.";
-    const userPrompt = `Generate a data-backed 3-part video script (Hook, Main Content, CTA) based strictly on this specific idea.
+    const userPrompt = `Buat script video 3-bagian (Hook, Main Content, CTA) dari ide berikut.
 Title: ${title}
 Description: ${description}
 Topic: ${idea.topic ?? ""}
 Tone: ${tone}
 Duration: ${duration}
 
-Stay strictly on this topic. Use data, insight, and contrarian perspectives to make the script compelling.
+ATURAN:
+- Hook: 1-3 kalimat yang menohok.
+- Main Content: detail dan engaging, sekitar 200-350 kata, dibagi menjadi alur yang jelas.
+- CTA: 1-2 kalimat yang menginspirasi action.
+- Tetap on-topic, gunakan data/insight contrarian.
 Output JSON only: { "hook": string, "main_content": string, "cta": string }`;
 
     let result: Record<string, unknown>;
     try {
-      result = await tabiGenerateJSON(systemPrompt, userPrompt, 600);
+      result = await tabiGenerateJSON(systemPrompt, userPrompt, 1000);
     } catch {
       result = mockStructuredScript() as unknown as Record<string, unknown>;
     }
